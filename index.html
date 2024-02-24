@@ -3,37 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YouTube Channel Metadata</title>
+<title>YouTube Metadata Extractor</title>
 <style>
     body {
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
+        background-color: #f4f4f4;
     }
     .container {
         max-width: 800px;
         margin: 20px auto;
         padding: 20px;
-        border: 1px solid #ccc;
+        background-color: #fff;
         border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    img {
-        max-width: 100%;
-        height: auto;
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    label {
+        display: block;
         margin-bottom: 10px;
     }
-    .metadata {
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
         margin-bottom: 20px;
+    }
+    button {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #0056b3;
+    }
+    pre {
+        white-space: pre-wrap;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
     }
 </style>
 </head>
 <body>
 <div class="container">
-    <h1>YouTube Channel Metadata</h1>
-    <div id="channelData" class="metadata"></div>
+    <h1>YouTube Metadata Extractor</h1>
+    <label for="url">Enter YouTube URL:</label>
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=uAiDC-SgF7o">
+    <button onclick="getYouTubeMetadata()">Get Metadata</button>
+    <pre id="metadata"></pre>
 </div>
 <script>
-    function getYouTubeMetadata(input) {
+    function getYouTubeMetadata() {
+        const input = document.getElementById('url').value;
         const url = new URL(input);
         let id;
 
@@ -43,7 +76,11 @@
             if (url.pathname === '/watch') {
                 const searchParams = new URLSearchParams(url.search);
                 id = searchParams.get('v');
-            } else if (url.pathname.startsWith('/channel/') || url.pathname.startsWith('/c/') || url.pathname.startsWith('/user/') || url.pathname.startsWith('/@')) {
+            } else if (url.pathname.startsWith('/shorts/')) {
+                id = url.pathname.substring('/shorts/'.length);
+            } else if (url.pathname.startsWith('/channel/')) {
+                id = url.pathname.substring('/channel/'.length);
+            } else if (url.pathname.startsWith('/user/') || url.pathname.startsWith('/c/') || url.pathname.startsWith('/@')) {
                 id = url.pathname.substring(url.pathname.lastIndexOf('/') + 1);
             }
         }
@@ -53,31 +90,35 @@
             id = url.pathname.substring(1);
         }
 
-        const apiKey = 'API KEY';
-        const apiEndpoint = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${id}&key=${apiKey}`;
+        const apiKey = 'YOUR-API-KEY';
+        const apiEndpoint = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${apiKey}`;
 
         fetch(apiEndpoint)
             .then(response => response.json())
             .then(data => {
-                const channel = data.items[0];
-                const channelData = document.getElementById('channelData');
+                const video = data.items[0];
+                const metadata = {
+                    publishedAt: video.snippet.publishedAt,
+                    channelId: video.snippet.channelId,
+                    title: video.snippet.title,
+                    description: video.snippet.description,
+                    thumbnails: video.snippet.thumbnails,
+                    channelTitle: video.snippet.channelTitle,
+                    tags: video.snippet.tags,
+                    categoryId: video.snippet.categoryId,
+                    liveBroadcastContent: video.snippet.liveBroadcastContent,
+                    defaultLanguage: video.snippet.defaultLanguage,
+                    localized: video.snippet.localized,
+                    defaultAudioLanguage: video.snippet.defaultAudioLanguage
+                };
 
-                const name = channel.snippet.title;
-                const description = channel.snippet.description;
-                const thumbnailUrl = channel.snippet.thumbnails.medium.url;
-
-                channelData.innerHTML = `
-                    <h2>${name}</h2>
-                    <img src="${thumbnailUrl}" alt="Channel Thumbnail">
-                    <p>${description}</p>
-                `;
+                document.getElementById('metadata').innerText = JSON.stringify(metadata, null, 2);
             })
             .catch(error => {
                 console.error('Error:', error);
+                document.getElementById('metadata').innerText = 'Error fetching metadata. Please check the URL and try again.';
             });
     }
-
-    
 </script>
 </body>
 </html>
